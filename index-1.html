@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#0f1219"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="SchoolCal"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="apple-touch-icon.png"/>
+<link rel="icon" href="favicon.png"/>
+<title>SchoolCal</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet"/>
+<style>
+  :root{
+    --bg:#0f1219; --surface:#1a2030; --surface2:#232b3e; --border:#2e3a52;
+    --accent:#4f9eff; --accent2:#f7c948; --accent3:#5ef6b0; --danger:#ff5f6d;
+    --text:#e8edf5; --text2:#8896b0; --text3:#4a5878;
+    --radius:16px; --radius-sm:10px; --shadow:0 8px 32px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden}
+  h1,h2,h3,h4{font-family:'Syne',sans-serif}
+  .app{display:flex;flex-direction:column;min-height:100vh;max-width:480px;margin:0 auto;position:relative;padding-bottom:env(safe-area-inset-bottom)}
+  .hidden{display:none!important}
+
+  /* AUTH SCREEN */
+  .auth-wrap{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:32px 24px}
+  .auth-logo{font-family:'Syne';font-weight:800;font-size:38px;letter-spacing:-1px;margin-bottom:6px}
+  .auth-logo span{color:var(--accent)}
+  .auth-tag{color:var(--text2);font-size:15px;margin-bottom:36px}
+  .auth-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px 20px}
+  .auth-tabs{display:flex;gap:6px;margin-bottom:20px;background:var(--surface2);padding:4px;border-radius:var(--radius-sm)}
+  .auth-tab{flex:1;padding:10px;border:none;background:transparent;color:var(--text2);border-radius:8px;font-family:'DM Sans';font-size:14px;font-weight:600;cursor:pointer;transition:.2s}
+  .auth-tab.active{background:var(--accent);color:#fff}
+  .field{margin-bottom:14px}
+  .field label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:6px}
+  .field input,.field select,.field textarea{width:100%;background:var(--surface2);border:1.5px solid var(--border);color:var(--text);border-radius:var(--radius-sm);padding:13px 14px;font-family:'DM Sans';font-size:15px;outline:none;transition:border-color .15s}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
+  .field select option{background:var(--surface2)}
+  .btn-primary{width:100%;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);padding:15px;font-family:'Syne';font-size:16px;font-weight:700;cursor:pointer;transition:opacity .15s}
+  .btn-primary:hover{opacity:.88} .btn-primary:disabled{opacity:.5;cursor:not-allowed}
+  .auth-msg{font-size:13px;margin-top:14px;text-align:center;min-height:18px}
+  .auth-msg.err{color:var(--danger)} .auth-msg.ok{color:var(--accent3)}
+  .auth-hint{font-size:12px;color:var(--text3);text-align:center;margin-top:18px;line-height:1.5}
+
+  /* SETUP BANNER */
+  .setup-screen{padding:40px 24px;min-height:100vh;display:flex;flex-direction:column;justify-content:center}
+  .setup-screen h2{font-size:24px;margin-bottom:12px}
+  .setup-screen p{color:var(--text2);font-size:14px;line-height:1.6;margin-bottom:10px}
+  .setup-screen code{background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:13px;color:var(--accent2)}
+
+  /* HEADER */
+  .header{padding:18px 20px 0;display:flex;align-items:center;justify-content:space-between}
+  .logo{font-family:'Syne';font-weight:800;font-size:21px;letter-spacing:-.5px}
+  .logo span{color:var(--accent)}
+  .header-right{display:flex;gap:10px;align-items:center}
+  .role-pill{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px}
+  .role-pill.admin{background:#ff5f6d22;color:#ff8a93}
+  .role-pill.teacher{background:#f7c94822;color:#f7c948}
+  .role-pill.parent{background:#5ef6b022;color:#5ef6b0}
+  .icon-btn-sm{background:var(--surface2);border:none;color:var(--text2);width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center}
+  .icon-btn-sm:hover{background:var(--border);color:var(--text)}
+
+  /* HERO */
+  .hero{padding:22px 20px 14px}
+  .hero-date{font-size:13px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px}
+  .hero-title{font-size:26px;font-weight:800;letter-spacing:-1px;line-height:1.1}
+  .hero-sub{color:var(--text2);font-size:14px;margin-top:6px}
+
+  .section-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;padding:0 20px;margin-bottom:10px}
+  .class-scroll{display:flex;gap:8px;padding:0 20px;overflow-x:auto;scrollbar-width:none;margin-bottom:20px}
+  .class-scroll::-webkit-scrollbar{display:none}
+  .chip{flex-shrink:0;padding:8px 16px;border-radius:50px;border:1.5px solid var(--border);background:transparent;color:var(--text2);font-size:13px;font-family:'DM Sans';cursor:pointer;transition:.2s;white-space:nowrap}
+  .chip.active{color:#fff;border-color:var(--accent);background:var(--accent);font-weight:600}
+
+  .reminder-banner{margin:0 20px 16px;background:linear-gradient(135deg,#4f9eff22,#7c5cfc22);border:1px solid #4f9eff44;border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;gap:12px}
+  .reminder-icon{font-size:26px}
+  .reminder-text{flex:1}
+  .reminder-text strong{font-size:14px;display:block;margin-bottom:2px}
+  .reminder-text span{font-size:12px;color:var(--text2)}
+
+  /* CALENDAR */
+  .cal-section{padding:0 20px}
+  .month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .month-nav h3{font-size:18px;font-weight:700}
+  .nav-btn{background:var(--surface2);border:none;color:var(--text);width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+  .nav-btn:hover{background:var(--border)}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .cal-day-name{text-align:center;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;padding:4px 0}
+  .cal-cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-sm);cursor:pointer;position:relative;transition:background .15s;font-size:13px;font-weight:500}
+  .cal-cell:hover{background:var(--surface2)}
+  .cal-cell.other-month{color:var(--text3)}
+  .cal-cell.today{background:var(--surface2);font-weight:700;color:var(--accent)}
+  .cal-cell.selected{background:var(--accent)!important;color:#fff!important;font-weight:700}
+  .cal-cell.has-event::after{content:'';position:absolute;bottom:4px;width:4px;height:4px;border-radius:50%;background:var(--accent2)}
+  .cal-cell.selected.has-event::after{background:#fff}
+
+  /* EVENTS */
+  .events-section{padding:20px;flex:1}
+  .events-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .events-header h3{font-size:15px;font-weight:700}
+  .add-btn{background:var(--accent);color:#fff;border:none;border-radius:50px;padding:8px 16px;font-family:'DM Sans';font-size:13px;font-weight:600;cursor:pointer}
+  .add-btn:hover{opacity:.85}
+  .event-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start;animation:slideUp .25s ease}
+  @keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  .event-dot{width:10px;height:10px;border-radius:50%;margin-top:5px;flex-shrink:0}
+  .event-body{flex:1;min-width:0}
+  .event-title{font-weight:600;font-size:15px;margin-bottom:3px}
+  .event-meta{font-size:12px;color:var(--text2);display:flex;gap:10px;flex-wrap:wrap}
+  .event-actions{display:flex;gap:6px}
+  .icon-btn{background:var(--surface2);border:none;color:var(--text2);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+  .icon-btn:hover{background:var(--border);color:var(--text)}
+  .icon-btn.del:hover{background:#ff5f6d22;color:var(--danger)}
+  .empty-state{text-align:center;padding:40px 20px;color:var(--text3)}
+  .empty-state .emoji{font-size:40px;margin-bottom:12px}
+
+  /* PANELS (notif/admin) */
+  .panel{padding:0 20px 20px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+  .card h4{font-size:13px;font-weight:700;margin-bottom:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+  .notif-status{display:flex;align-items:center;gap:10px}
+  .status-dot{width:8px;height:8px;border-radius:50%;background:var(--danger)}
+  .status-dot.on{background:var(--accent3)}
+  .status-text{font-size:14px;flex:1}
+  .toggle-btn{background:var(--accent);color:#fff;border:none;border-radius:50px;padding:7px 14px;font-family:'DM Sans';font-size:12px;font-weight:600;cursor:pointer}
+  .toggle-btn.off{background:var(--surface2);color:var(--text2)}
+  .subscribe-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .sub-chip{padding:10px 12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:transparent;color:var(--text2);font-family:'DM Sans';font-size:13px;cursor:pointer;transition:.2s;text-align:left;display:flex;align-items:center;gap:8px}
+  .sub-chip.subscribed{border-color:var(--accent3);background:#5ef6b01a;color:var(--accent3)}
+
+  .user-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+  .user-row:last-child{border-bottom:none}
+  .avatar{width:34px;height:34px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0}
+  .user-info{flex:1;min-width:0}
+  .user-info .nm{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .user-info .em{font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mini-select{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 8px;font-size:12px;font-family:'DM Sans'}
+  .pending-tag{font-size:11px;background:var(--accent2);color:#1a1f2e;padding:2px 8px;border-radius:20px;font-weight:700}
+
+  /* MODAL */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:100;display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .2s}
+  @keyframes fadeIn{from{opacity:0}}
+  .modal{background:var(--surface);border-radius:24px 24px 0 0;padding:24px 20px;width:100%;max-width:480px;animation:slideUp2 .25s ease;max-height:90vh;overflow-y:auto}
+  @keyframes slideUp2{from{transform:translateY(40px);opacity:0}}
+  .modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px}
+  .modal h3{font-size:20px;font-weight:800;margin-bottom:20px}
+  .modal-actions{display:flex;gap:10px;margin-top:8px}
+  .btn-cancel{background:var(--surface2);color:var(--text2);border:none;border-radius:var(--radius-sm);padding:14px 20px;font-family:'DM Sans';font-size:14px;cursor:pointer}
+  .modal-actions .btn-primary{flex:1}
+
+  /* TOAST */
+  .toast{position:fixed;top:calc(16px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:12px 20px;border-radius:50px;font-size:14px;z-index:200;animation:fadeIn .2s;box-shadow:var(--shadow);max-width:90vw;text-align:center}
+
+  /* BOTTOM NAV */
+  .bottom-nav{display:flex;border-top:1px solid var(--border);background:var(--surface);position:sticky;bottom:0;padding-bottom:env(safe-area-inset-bottom)}
+  .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 4px;cursor:pointer;transition:color .15s;color:var(--text3);gap:3px}
+  .nav-item.active{color:var(--accent)}
+  .nav-icon{font-size:22px}
+  .nav-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+
+  .spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:80px auto}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="root">
+  <div class="spinner"></div>
+</div>
+
+<!-- Toast container -->
+<div id="toastHost"></div>
+
+<script type="module">
+// ========================================================================
+//  ⚙️  CONFIG  — PASTE YOUR KEYS HERE (instructions in the chat / SETUP.md)
+// ========================================================================
+const CONFIG = {
+  // 1) From Firebase Console → Project settings → Your apps → SDK setup
+  firebase: {
+    apiKey: "AIzaSyDEPyrJP3rC5CpHRnuZ797nJOchAHty1BM",
+    authDomain: "schoolcal-e6e48.firebaseapp.com",
+    projectId: "schoolcal-e6e48",
+    storageBucket: "schoolcal-e6e48.firebasestorage.app",
+    messagingSenderId: "754955499042",
+    appId: "1:754955499042:web:0f6a51e82fe370e33cbc7b"
+  },
+  // 2) The email address that should be the FIRST admin (you).
+  //    Whoever signs up with this exact email becomes admin automatically.
+  bootstrapAdminEmail: "kieranoshaughnessy92@gmail.com",
+
+  // 3) From EmailJS dashboard (lets Admin send invite emails). Optional —
+  //    if left blank, invites still work but you'll copy the link manually.
+  emailjs: {
+    publicKey: "",     // Account → General → Public Key
+    serviceId: "",     // Email Services → Service ID
+    templateId: ""     // Email Templates → Template ID
+  },
+
+  classes: ["Year 1","Year 2","Year 3","Year 4","Year 5","Year 6"]
+};
+// ========================================================================
+
+const CLASS_COLORS = {all:"#4f9eff","Year 1":"#7c5cfc","Year 2":"#f7c948","Year 3":"#5ef6b0","Year 4":"#ff5f6d","Year 5":"#4f9eff","Year 6":"#ff9a3c"};
+const isConfigured = !CONFIG.firebase.apiKey.startsWith("PASTE");
+
+// ---- imports (only load Firebase if configured) ----
+let fb = {};
+if (isConfigured) {
+  const appMod  = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
+  const authMod = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+  const fsMod   = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+  const app = appMod.initializeApp(CONFIG.firebase);
+  fb = { app, ...authMod, ...fsMod, auth: authMod.getAuth(app), db: fsMod.getFirestore(app) };
+}
+
+// ---- EmailJS (optional) ----
+let emailjsReady = false;
+if (CONFIG.emailjs.publicKey) {
+  await new Promise((res)=>{ const s=document.createElement("script"); s.src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"; s.onload=res; s.onerror=res; document.head.appendChild(s); });
+  if (window.emailjs){ window.emailjs.init({publicKey:CONFIG.emailjs.publicKey}); emailjsReady=true; }
+}
+
+// ====================== STATE ======================
+const S = {
+  user:null, profile:null, role:null,
+  tab:"calendar", selectedDate:new Date(), viewDate:new Date(),
+  activeClass:"all", events:[], users:[], knownEventIds:new Set(),
+};
+const root = document.getElementById("root");
+
+// ====================== HELPERS ======================
+const fmtDate=d=>d.toISOString().split("T")[0];
+const addDays=(d,n)=>{const r=new Date(d);r.setDate(r.getDate()+n);return r};
+const todayStr=()=>fmtDate(new Date());
+function fmt12(t){ if(!t)return""; const[h,m]=t.split(":").map(Number); const ap=h>=12?"pm":"am"; return `${h%12||12}:${String(m).padStart(2,"0")}${ap}`; }
+function niceDate(ds){ const d=new Date(ds+"T00:00:00"); const t=new Date(); t.setHours(0,0,0,0); const diff=Math.round((d-t)/864e5); if(diff===0)return"Today"; if(diff===1)return"Tomorrow"; if(diff===-1)return"Yesterday"; return d.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"}); }
+function esc(s){ return (s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function toast(msg){ const h=document.getElementById("toastHost"); h.innerHTML=`<div class="toast">${esc(msg)}</div>`; setTimeout(()=>h.innerHTML="",2800); }
+function initials(n){ return (n||"?").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase(); }
+
+// ====================== AUTH FLOW ======================
+if (!isConfigured){ renderSetup(); }
+else {
+  fb.onAuthStateChanged(fb.auth, async (u)=>{
+    if(!u){ S.user=null; S.profile=null; S.role=null; renderAuth(); return; }
+    S.user=u;
+    // load or create profile
+    const uref = fb.doc(fb.db,"users",u.uid);
+    let snap = await fb.getDoc(uref);
+    if(!snap.exists()){
+      // determine role: bootstrap admin, or invite
+      const email=(u.email||"").toLowerCase();
+      let role=null, name=u.displayName||email.split("@")[0];
+      if(email===CONFIG.bootstrapAdminEmail.toLowerCase()){ role="admin"; }
+      else{
+        const inv=await fb.getDoc(fb.doc(fb.db,"invites",email));
+        if(inv.exists()) role=inv.data().role;
+      }
+      if(!role){
+        await fb.signOut(fb.auth);
+        renderAuth("No invite found for this email. Ask your school admin to invite you first.");
+        return;
+      }
+      await fb.setDoc(uref,{ email, name, role, subscribedClasses:[], createdAt:fb.serverTimestamp() });
+      // consume invite
+      try{ await fb.deleteDoc(fb.doc(fb.db,"invites",email)); }catch(e){}
+      snap = await fb.getDoc(uref);
+    }
+    S.profile=snap.data(); S.role=S.profile.role;
+    subscribeData();
+    render();
+  });
+}
+
+let unsubEvents=null, unsubUsers=null;
+function subscribeData(){
+  if(unsubEvents) unsubEvents();
+  unsubEvents = fb.onSnapshot(fb.query(fb.collection(fb.db,"events")), (qs)=>{
+    const list=[]; qs.forEach(d=>list.push({id:d.id,...d.data()}));
+    list.sort((a,b)=> (a.date+ (a.time||"")).localeCompare(b.date+(b.time||"")));
+    // detect new additions for notifications (skip first load)
+    if(S.knownEventIds.size){
+      list.forEach(e=>{ if(!S.knownEventIds.has(e.id)) maybeNotify(e); });
+    }
+    S.knownEventIds=new Set(list.map(e=>e.id));
+    S.events=list; render();
+  });
+  if(S.role==="admin"){
+    if(unsubUsers) unsubUsers();
+    unsubUsers = fb.onSnapshot(fb.query(fb.collection(fb.db,"users")), (qs)=>{
+      const list=[]; qs.forEach(d=>list.push({uid:d.id,...d.data()})); S.users=list; if(S.tab==="admin")render();
+    });
+  }
+}
+
+// ====================== NOTIFICATIONS (foreground) ======================
+function notifOn(){ return localStorage.getItem("notifOn")==="1"; }
+function maybeNotify(e){
+  if(!notifOn() || Notification.permission!=="granted") return;
+  const subs=S.profile?.subscribedClasses||[];
+  if(e.cls!=="all" && !subs.includes(e.cls)) return;
+  new Notification("New school event 📅",{ body:`${e.title} — ${niceDate(e.date)}${e.time?" at "+fmt12(e.time):""} · ${e.cls==="all"?"All classes":e.cls}`, icon:"icon-192.png" });
+}
+async function enableNotifs(){
+  if(!("Notification"in window)){ toast("⚠️ Notifications not supported here"); return; }
+  const p=await Notification.requestPermission();
+  if(p==="granted"){ localStorage.setItem("notifOn","1"); toast("🔔 Notifications on"); }
+  else toast("⚠️ Permission denied — check browser settings");
+  render();
+}
+function disableNotifs(){ localStorage.setItem("notifOn","0"); toast("Notifications off"); render(); }
+
+// ====================== ACTIONS ======================
+async function doLogin(email,pass,msgEl){
+  try{ await fb.signInWithEmailAndPassword(fb.auth,email.trim(),pass); }
+  catch(e){ msgEl.textContent=friendly(e); msgEl.className="auth-msg err"; }
+}
+async function doSignup(email,pass,msgEl){
+  try{ await fb.createUserWithEmailAndPassword(fb.auth,email.trim(),pass); }
+  catch(e){ msgEl.textContent=friendly(e); msgEl.className="auth-msg err"; }
+}
+function friendly(e){
+  const c=(e&&e.code)||"";
+  if(c.includes("invalid-credential")||c.includes("wrong-password")) return "Wrong email or password.";
+  if(c.includes("user-not-found")) return "No account found. Use the invite link to sign up.";
+  if(c.includes("email-already-in-use")) return "That email already has an account — try Log in.";
+  if(c.includes("weak-password")) return "Password must be at least 6 characters.";
+  if(c.includes("invalid-email")) return "That doesn't look like a valid email.";
+  return "Something went wrong. Please try again.";
+}
+async function logout(){ if(unsubEvents)unsubEvents(); if(unsubUsers)unsubUsers(); S.knownEventIds=new Set(); await fb.signOut(fb.auth); }
+
+async function saveEvent(data,id){
+  try{
+    if(id){ await fb.updateDoc(fb.doc(fb.db,"events",id),data); toast("✏️ Event updated"); }
+    else{ await fb.addDoc(fb.collection(fb.db,"events"),{...data,createdBy:S.user.uid,createdAt:fb.serverTimestamp()}); toast("✅ Event added"); }
+  }catch(e){ toast("⚠️ "+(e.code||"Save failed")); }
+}
+async function removeEvent(id){ if(!confirm("Delete this event?"))return; try{ await fb.deleteDoc(fb.doc(fb.db,"events",id)); toast("🗑️ Deleted"); }catch(e){ toast("⚠️ Delete failed"); } }
+
+async function inviteUser(email,role){
+  email=email.trim().toLowerCase();
+  if(!email){ toast("Enter an email"); return; }
+  try{
+    await fb.setDoc(fb.doc(fb.db,"invites",email),{ email, role, invitedBy:S.user.uid, createdAt:fb.serverTimestamp() });
+    const link=location.origin+location.pathname;
+    if(emailjsReady){
+      await window.emailjs.send(CONFIG.emailjs.serviceId,CONFIG.emailjs.templateId,{
+        to_email:email, invitee_email:email, role:role, app_link:link, school:"SchoolCal", from_name:S.profile.name
+      });
+      toast("📧 Invite emailed to "+email);
+    }else{
+      await navigator.clipboard?.writeText(link).catch(()=>{});
+      toast("✅ Invite created. Link copied — send it to "+email);
+    }
+  }catch(e){ toast("⚠️ "+(e.code||"Invite failed")); }
+}
+async function changeRole(uid,role){ try{ await fb.updateDoc(fb.doc(fb.db,"users",uid),{role}); toast("Role updated"); }catch(e){ toast("⚠️ "+(e.code||"failed")); } }
+async function setSubs(arr){ S.profile.subscribedClasses=arr; try{ await fb.updateDoc(fb.doc(fb.db,"users",S.user.uid),{subscribedClasses:arr}); }catch(e){} }
+
+// ====================== RENDER: SETUP ======================
+function renderSetup(){
+  root.innerHTML=`<div class="setup-screen">
+    <div class="auth-logo">School<span>Cal</span></div>
+    <h2>Almost there 🔧</h2>
+    <p>This app needs your Firebase keys before it can run. Open <code>index.html</code> and paste your keys into the <code>CONFIG</code> block near the top.</p>
+    <p>Follow the step-by-step setup guide that came with this app (SETUP.md), or the instructions in your chat. Once the keys are in, refresh this page.</p>
+  </div>`;
+}
+
+// ====================== RENDER: AUTH ======================
+let authMode="login";
+function renderAuth(notice){
+  root.innerHTML=`<div class="auth-wrap">
+    <div class="auth-logo">School<span>Cal</span></div>
+    <div class="auth-tag">Your child's school calendar, all in one place.</div>
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button class="auth-tab ${authMode==="login"?"active":""}" id="tabLogin">Log in</button>
+        <button class="auth-tab ${authMode==="signup"?"active":""}" id="tabSignup">Sign up</button>
+      </div>
+      ${authMode==="signup"?`<div class="field"><label>Your name</label><input id="aName" type="text" placeholder="e.g. Sam Taylor"/></div>`:""}
+      <div class="field"><label>Email</label><input id="aEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com"/></div>
+      <div class="field"><label>Password</label><input id="aPass" type="password" autocomplete="current-password" placeholder="••••••••"/></div>
+      <button class="btn-primary" id="aSubmit">${authMode==="login"?"Log in":"Create account"}</button>
+      <div class="auth-msg ${notice?"err":""}" id="aMsg">${notice?esc(notice):""}</div>
+      <div class="auth-hint">${authMode==="signup"
+        ?"You can only sign up if your school admin has invited your email address."
+        :"New here? Use the email your school admin invited, then tap Sign up."}</div>
+    </div>
+  </div>`;
+  document.getElementById("tabLogin").onclick=()=>{authMode="login";renderAuth();};
+  document.getElementById("tabSignup").onclick=()=>{authMode="signup";renderAuth();};
+  const msg=document.getElementById("aMsg");
+  document.getElementById("aSubmit").onclick=async(ev)=>{
+    const email=document.getElementById("aEmail").value;
+    const pass=document.getElementById("aPass").value;
+    if(!email||!pass){ msg.textContent="Enter your email and password."; msg.className="auth-msg err"; return; }
+    ev.target.disabled=true; msg.textContent="…"; msg.className="auth-msg";
+    if(authMode==="login") await doLogin(email,pass,msg);
+    else await doSignup(email,pass,msg);
+    ev.target.disabled=false;
+  };
+}
+
+// ====================== RENDER: APP ======================
+function render(){
+  if(!S.user||!S.role) return;
+  root.innerHTML=`<div class="app">
+    <div class="header">
+      <div class="logo">School<span>Cal</span></div>
+      <div class="header-right">
+        <span class="role-pill ${S.role}">${S.role}</span>
+        <button class="icon-btn-sm" id="logoutBtn" title="Log out">⏻</button>
+      </div>
+    </div>
+    <div id="main"></div>
+    <div class="bottom-nav">
+      <div class="nav-item ${S.tab==="calendar"?"active":""}" data-tab="calendar"><div class="nav-icon">📅</div><div class="nav-label">Calendar</div></div>
+      <div class="nav-item ${S.tab==="notifications"?"active":""}" data-tab="notifications"><div class="nav-icon">🔔</div><div class="nav-label">Alerts</div></div>
+      ${S.role==="admin"?`<div class="nav-item ${S.tab==="admin"?"active":""}" data-tab="admin"><div class="nav-icon">👥</div><div class="nav-label">People</div></div>`:""}
+    </div>
+  </div>`;
+  document.getElementById("logoutBtn").onclick=logout;
+  document.querySelectorAll(".nav-item").forEach(n=>n.onclick=()=>{S.tab=n.dataset.tab;render();});
+  if(S.tab==="calendar") renderCalendar();
+  else if(S.tab==="notifications") renderNotif();
+  else renderAdmin();
+}
+
+function filteredEvents(){ return S.activeClass==="all"?S.events:S.events.filter(e=>e.cls==="all"||e.cls===S.activeClass); }
+function upcomingForMe(){
+  const t=new Date();t.setHours(0,0,0,0); const subs=S.profile?.subscribedClasses||[];
+  return S.events.filter(e=>{const d=new Date(e.date+"T00:00:00");const diff=Math.ceil((d-t)/864e5);return diff>=0&&diff<=3&&(e.cls==="all"||subs.includes(e.cls));})[0];
+}
+function greeting(){const h=new Date().getHours();return h<12?"Good morning ☀️":h<17?"Good afternoon 👋":"Good evening 🌙";}
+function roleSub(){return S.role==="parent"?"Here's what's coming up.":S.role==="teacher"?"Manage your class events below.":"School-wide calendar & people.";}
+
+function renderCalendar(){
+  const main=document.getElementById("main");
+  const today=new Date(), selS=fmtDate(S.selectedDate), todayS=todayStr();
+  const up=upcomingForMe();
+  const monthName=S.viewDate.toLocaleString("default",{month:"long",year:"numeric"});
+  const canEdit=S.role==="teacher"||S.role==="admin";
+  const dayEvents=filteredEvents().filter(e=>e.date===selS);
+  main.innerHTML=`
+    <div class="hero">
+      <div class="hero-date">${today.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"})}</div>
+      <div class="hero-title">${greeting()}, ${esc((S.profile.name||"").split(" ")[0])}</div>
+      <div class="hero-sub">${roleSub()}</div>
+    </div>
+    ${up?`<div class="reminder-banner"><div class="reminder-icon">⚡</div><div class="reminder-text"><strong>${esc(up.title)}</strong><span>${up.cls==="all"?"All classes":esc(up.cls)} · ${niceDate(up.date)}${up.time?" at "+fmt12(up.time):""}</span></div></div>`:""}
+    <div class="section-label">Filter by class</div>
+    <div class="class-scroll" id="chips"></div>
+    <div class="cal-section">
+      <div class="month-nav"><button class="nav-btn" id="prevM">‹</button><h3>${monthName}</h3><button class="nav-btn" id="nextM">›</button></div>
+      <div class="cal-grid" id="grid"></div>
+    </div>
+    <div class="events-section">
+      <div class="events-header"><h3>${selS===todayS?"Today's events":niceDate(selS)}</h3>${canEdit?`<button class="add-btn" id="addBtn">＋ Add</button>`:""}</div>
+      <div id="evList"></div>
+    </div>`;
+  // chips
+  const chips=document.getElementById("chips");
+  chips.innerHTML=["all",...CONFIG.classes].map(c=>`<button class="chip ${S.activeClass===c?"active":""}" data-c="${c}">${c==="all"?"📋 All":esc(c)}</button>`).join("");
+  chips.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{S.activeClass=b.dataset.c;render();});
+  // calendar grid
+  buildGrid(document.getElementById("grid"));
+  document.getElementById("prevM").onclick=()=>{S.viewDate.setMonth(S.viewDate.getMonth()-1);render();};
+  document.getElementById("nextM").onclick=()=>{S.viewDate.setMonth(S.viewDate.getMonth()+1);render();};
+  if(canEdit) document.getElementById("addBtn").onclick=()=>openEventModal();
+  // events
+  const list=document.getElementById("evList");
+  if(!dayEvents.length){ list.innerHTML=`<div class="empty-state"><div class="emoji">📭</div><p>No events this day${S.activeClass!=="all"?" for "+esc(S.activeClass):""}.</p></div>`; }
+  else list.innerHTML=dayEvents.map(eventCardHTML).join("");
+  list.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>openEventModal(b.dataset.edit));
+  list.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>removeEvent(b.dataset.del));
+}
+function buildGrid(grid){
+  const y=S.viewDate.getFullYear(), m=S.viewDate.getMonth();
+  const first=new Date(y,m,1), last=new Date(y,m+1,0), start=first.getDay();
+  const selS=fmtDate(S.selectedDate), todayS=todayStr();
+  const eventDates=new Set(filteredEvents().map(e=>e.date));
+  let html=["Su","Mo","Tu","We","Th","Fr","Sa"].map(d=>`<div class="cal-day-name">${d}</div>`).join("");
+  for(let i=0;i<start;i++){const d=new Date(y,m,-start+1+i);html+=`<div class="cal-cell other-month" data-d="${fmtDate(d)}">${d.getDate()}</div>`;}
+  for(let d=1;d<=last.getDate();d++){
+    const ds=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const cls=["cal-cell",ds===todayS?"today":"",ds===selS?"selected":"",eventDates.has(ds)?"has-event":""].filter(Boolean).join(" ");
+    html+=`<div class="${cls}" data-d="${ds}">${d}</div>`;
+  }
+  grid.innerHTML=html;
+  grid.querySelectorAll("[data-d]").forEach(c=>c.onclick=()=>{S.selectedDate=new Date(c.dataset.d+"T00:00:00");render();});
+}
+function eventCardHTML(e){
+  const canEdit=S.role==="teacher"||S.role==="admin";
+  const color=CLASS_COLORS[e.cls]||"#4f9eff";
+  return `<div class="event-card"><div class="event-dot" style="background:${color}"></div>
+    <div class="event-body"><div class="event-title">${esc(e.title)}</div>
+      <div class="event-meta"><span>${e.cls==="all"?"🌐 All classes":"🎒 "+esc(e.cls)}</span>${e.time?`<span>🕐 ${fmt12(e.time)}</span>`:""}${e.notes?`<span>📝 ${esc(e.notes)}</span>`:""}</div></div>
+    ${canEdit?`<div class="event-actions"><button class="icon-btn" data-edit="${e.id}">✏️</button><button class="icon-btn del" data-del="${e.id}">🗑️</button></div>`:""}</div>`;
+}
+
+function renderNotif(){
+  const main=document.getElementById("main");
+  const on=notifOn()&&Notification.permission==="granted";
+  const subs=S.profile.subscribedClasses||[];
+  const week=S.events.filter(e=>{const d=new Date(e.date+"T00:00:00");const t=new Date();t.setHours(0,0,0,0);const diff=Math.ceil((d-t)/864e5);return diff>=0&&diff<=7&&(e.cls==="all"||subs.includes(e.cls));});
+  main.innerHTML=`
+    <div class="hero"><div class="hero-date">Notifications</div><div class="hero-title">Stay in the loop</div><div class="hero-sub">Get alerts for your child's classes.</div></div>
+    <div class="panel">
+      <div class="card"><h4>🔔 Push notifications</h4>
+        <div class="notif-status"><div class="status-dot ${on?"on":""}"></div><div class="status-text">${on?"Notifications enabled":"Notifications off"}</div>
+        <button class="toggle-btn ${on?"":"off"}" id="ntog">${on?"On ✓":"Enable"}</button></div>
+        ${!on?`<p style="font-size:12px;color:var(--text3);margin-top:10px">Works on Android in any browser, and on iPhone once you add the app to your Home Screen (iOS 16.4+).</p>`:""}
+      </div>
+      <div class="card"><h4>📚 My child's classes</h4>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:10px">Choose which classes to follow.</p>
+        <div class="subscribe-grid" id="subs">${CONFIG.classes.map(c=>`<button class="sub-chip ${subs.includes(c)?"subscribed":""}" data-c="${c}"><span>${subs.includes(c)?"✓":"○"}</span> ${esc(c)}</button>`).join("")}</div>
+      </div>
+      ${week.length?`<div class="card"><h4>📅 This week</h4>${week.map(e=>`<div class="user-row"><div style="width:8px;height:8px;border-radius:50%;background:${CLASS_COLORS[e.cls]||"#4f9eff"};flex-shrink:0"></div><div class="user-info"><div class="nm">${esc(e.title)}</div><div class="em">${niceDate(e.date)} · ${e.cls==="all"?"All classes":esc(e.cls)}</div></div></div>`).join("")}</div>`:""}
+    </div>`;
+  document.getElementById("ntog").onclick=()=>on?disableNotifs():enableNotifs();
+  document.getElementById("subs").querySelectorAll(".sub-chip").forEach(b=>b.onclick=async()=>{
+    const c=b.dataset.c; const cur=new Set(S.profile.subscribedClasses||[]);
+    cur.has(c)?cur.delete(c):cur.add(c); await setSubs([...cur]); render();
+  });
+}
+
+function renderAdmin(){
+  const main=document.getElementById("main");
+  const roleCount=r=>S.users.filter(u=>u.role===r).length;
+  main.innerHTML=`
+    <div class="hero"><div class="hero-date">People & access</div><div class="hero-title">Manage your school</div><div class="hero-sub">${S.users.length} member${S.users.length===1?"":"s"} · ${roleCount("teacher")} teachers · ${roleCount("parent")} parents</div></div>
+    <div class="panel">
+      <div class="card"><h4>✉️ Invite someone</h4>
+        <div class="field"><label>Email address</label><input id="invEmail" type="email" inputmode="email" placeholder="person@example.com"/></div>
+        <div class="field"><label>Role</label><select id="invRole"><option value="parent">Parent</option><option value="teacher">Teacher</option><option value="admin">Admin</option></select></div>
+        <button class="btn-primary" id="invBtn">Send invite</button>
+        <p style="font-size:12px;color:var(--text3);margin-top:10px">${emailjsReady?"They'll get an email with a sign-up link.":"Email sending isn't set up yet — the invite link will be copied so you can send it yourself."}</p>
+      </div>
+      <div class="card"><h4>👥 Members</h4><div id="userList"></div></div>
+    </div>`;
+  document.getElementById("invBtn").onclick=()=>{ const e=document.getElementById("invEmail").value; const r=document.getElementById("invRole").value; inviteUser(e,r); document.getElementById("invEmail").value=""; };
+  const ul=document.getElementById("userList");
+  if(!S.users.length){ ul.innerHTML=`<p style="color:var(--text3);font-size:13px">Loading…</p>`; }
+  else ul.innerHTML=S.users.map(u=>`<div class="user-row"><div class="avatar">${initials(u.name)}</div>
+    <div class="user-info"><div class="nm">${esc(u.name||"—")}${u.uid===S.user.uid?" (you)":""}</div><div class="em">${esc(u.email)}</div></div>
+    <select class="mini-select" data-uid="${u.uid}" ${u.uid===S.user.uid?"disabled":""}>
+      ${["parent","teacher","admin"].map(r=>`<option value="${r}" ${u.role===r?"selected":""}>${r}</option>`).join("")}
+    </select></div>`).join("");
+  ul.querySelectorAll(".mini-select").forEach(s=>s.onchange=()=>changeRole(s.dataset.uid,s.value));
+}
+
+// ====================== EVENT MODAL ======================
+function openEventModal(id){
+  const ev=id?S.events.find(e=>e.id===id):null;
+  const host=document.getElementById("toastHost");
+  host.innerHTML=`<div class="modal-overlay" id="ov"><div class="modal">
+    <div class="modal-handle"></div><h3>${ev?"Edit event":"Add event"}</h3>
+    <div class="field"><label>Title</label><input id="mT" value="${ev?esc(ev.title):""}" placeholder="e.g. Science test, Sports day…"/></div>
+    <div class="field"><label>Date</label><input id="mD" type="date" value="${ev?ev.date:fmtDate(S.selectedDate)}"/></div>
+    <div class="field"><label>Time (optional)</label><input id="mTime" type="time" value="${ev?(ev.time||""):""}"/></div>
+    <div class="field"><label>Class / year group</label><select id="mC"><option value="all">All classes</option>${CONFIG.classes.map(c=>`<option value="${c}" ${ev&&ev.cls===c?"selected":""}>${esc(c)}</option>`).join("")}</select></div>
+    <div class="field"><label>Notes (optional)</label><textarea id="mN" rows="2" placeholder="Any extra info…">${ev?esc(ev.notes||""):""}</textarea></div>
+    <div class="modal-actions"><button class="btn-cancel" id="mCancel">Cancel</button><button class="btn-primary" id="mSave">Save</button></div>
+  </div></div>`;
+  const close=()=>host.innerHTML="";
+  document.getElementById("ov").onclick=e=>{if(e.target.id==="ov")close();};
+  document.getElementById("mCancel").onclick=close;
+  document.getElementById("mSave").onclick=async()=>{
+    const title=document.getElementById("mT").value.trim();
+    const date=document.getElementById("mD").value;
+    if(!title||!date){ toast("⚠️ Title and date required"); return; }
+    const data={ title, date, time:document.getElementById("mTime").value, cls:document.getElementById("mC").value, notes:document.getElementById("mN").value.trim() };
+    close(); await saveEvent(data,id);
+    S.selectedDate=new Date(date+"T00:00:00"); S.viewDate=new Date(date+"T00:00:00"); render();
+  };
+}
+
+// register service worker (installability + offline shell)
+if("serviceWorker"in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
+</script>
+</body>
+</html>
