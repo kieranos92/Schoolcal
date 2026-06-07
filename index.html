@@ -49,6 +49,7 @@
   .auth-or span{padding:0 12px;text-transform:uppercase;letter-spacing:1px}
   .btn-google{width:100%;background:#fff;border:1.5px solid var(--border);color:#2c2e38;border-radius:var(--radius-sm);padding:13px;font-family:'DM Sans';font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background .15s}
   .btn-google:hover{background:var(--surface2)}
+  .btn-google + .btn-google{margin-top:10px}
   .btn-google svg{width:18px;height:18px;flex-shrink:0}
 
   /* SETUP BANNER */
@@ -70,9 +71,10 @@
   .icon-btn-sm:hover{background:var(--border);color:var(--text)}
 
   /* HERO */
-  .hero{padding:22px 20px 14px}
+  .hero{padding:14px 20px 8px}
   .hero-date{font-size:13px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px}
-  .hero-title{font-size:26px;font-weight:800;letter-spacing:-1px;line-height:1.1}
+  .hero-title{font-size:20px;font-weight:800;letter-spacing:-.5px;line-height:1.15}
+  .edit-name{border-bottom:1.5px dotted var(--text3);cursor:pointer}
   .hero-sub{color:var(--text2);font-size:14px;margin-top:6px}
 
   .section-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;padding:0 20px;margin-bottom:10px}
@@ -204,11 +206,11 @@ const CONFIG = {
     templateId: ""     // Email Templates → Template ID
   },
 
-  classes: ["Year 1","Year 2","Year 3","Year 4","Year 5","Year 6"]
+  classes: ["Junior Infants","Senior Infants","1st Class","2nd Class","3rd Class","4th Class","5th Class","6th Class"]
 };
 // ========================================================================
 
-const CLASS_COLORS = {all:"#4f9eff","Year 1":"#7c5cfc","Year 2":"#f7c948","Year 3":"#5ef6b0","Year 4":"#ff5f6d","Year 5":"#4f9eff","Year 6":"#ff9a3c"};
+const CLASS_COLORS = {all:"#5b63e8","Junior Infants":"#f4a93c","Senior Infants":"#e8895b","1st Class":"#e8556b","2nd Class":"#b86bd6","3rd Class":"#6b8be8","4th Class":"#2bb98a","5th Class":"#3aa6c9","6th Class":"#c9913a"};
 const isConfigured = !CONFIG.firebase.apiKey.startsWith("PASTE");
 
 // ---- imports (only load Firebase if configured) ----
@@ -238,8 +240,9 @@ if (CONFIG.emailjs.publicKey) {
 const S = {
   user:null, profile:null, role:null,
   tab:"calendar", selectedDate:new Date(), viewDate:new Date(),
-  activeClass:"all", events:[], users:[], knownEventIds:new Set(),
+  activeClass:"all", events:[], users:[], invites:[], knownEventIds:new Set(),
 };
+let pendingName=null;
 const root = document.getElementById("root");
 window.__rendered = false;
 function markRendered(){ window.__rendered = true; }
@@ -278,7 +281,7 @@ else {
     if(!snap.exists()){
       // determine role: bootstrap admin, or invite
       const email=(u.email||"").toLowerCase();
-      let role=null, name=u.displayName||email.split("@")[0];
+      let role=null, name=pendingName||u.displayName||email.split("@")[0];
       if(email===CONFIG.bootstrapAdminEmail.toLowerCase()){ role="admin"; }
       else{
         const inv=await fb.getDoc(fb.doc(fb.db,"invites",email));
@@ -290,6 +293,7 @@ else {
         return;
       }
       await fb.setDoc(uref,{ email, name, role, subscribedClasses:[], createdAt:fb.serverTimestamp() });
+      pendingName=null;
       // consume invite
       try{ await fb.deleteDoc(fb.doc(fb.db,"invites",email)); }catch(e){}
       snap = await fb.getDoc(uref);
@@ -300,7 +304,7 @@ else {
   });
 }
 
-let unsubEvents=null, unsubUsers=null;
+let unsubEvents=null, unsubUsers=null, unsubInvites=null;
 function subscribeData(){
   if(unsubEvents) unsubEvents();
   unsubEvents = fb.onSnapshot(fb.query(fb.collection(fb.db,"events")), (qs)=>{
@@ -317,6 +321,10 @@ function subscribeData(){
     if(unsubUsers) unsubUsers();
     unsubUsers = fb.onSnapshot(fb.query(fb.collection(fb.db,"users")), (qs)=>{
       const list=[]; qs.forEach(d=>list.push({uid:d.id,...d.data()})); S.users=list; if(S.tab==="admin")render();
+    });
+    if(unsubInvites) unsubInvites();
+    unsubInvites = fb.onSnapshot(fb.query(fb.collection(fb.db,"invites")), (qs)=>{
+      const list=[]; qs.forEach(d=>list.push({email:d.id,...d.data()})); S.invites=list; if(S.tab==="admin")render();
     });
   }
 }
@@ -348,6 +356,15 @@ async function doGoogle(msgEl){
     msgEl.textContent=friendly(e); msgEl.className="auth-msg err";
   }
 }
+async function doMicrosoft(msgEl){
+  try{
+    const provider=new fb.OAuthProvider("microsoft.com");
+    await fb.signInWithPopup(fb.auth, provider);
+  }catch(e){
+    if(e && e.code && e.code.includes("popup")){ try{ await fb.signInWithRedirect(fb.auth, new fb.OAuthProvider("microsoft.com")); return; }catch(_){} }
+    msgEl.textContent=friendly(e); msgEl.className="auth-msg err";
+  }
+}
 async function doLogin(email,pass,msgEl){
   try{ await fb.signInWithEmailAndPassword(fb.auth,email.trim(),pass); }
   catch(e){ msgEl.textContent=friendly(e); msgEl.className="auth-msg err"; }
@@ -365,7 +382,7 @@ function friendly(e){
   if(c.includes("invalid-email")) return "That doesn't look like a valid email.";
   return "Something went wrong. Please try again.";
 }
-async function logout(){ if(unsubEvents)unsubEvents(); if(unsubUsers)unsubUsers(); S.knownEventIds=new Set(); await fb.signOut(fb.auth); }
+async function logout(){ if(unsubEvents)unsubEvents(); if(unsubUsers)unsubUsers(); if(unsubInvites)unsubInvites(); S.knownEventIds=new Set(); await fb.signOut(fb.auth); }
 
 async function saveEvent(data,id){
   try{
@@ -392,6 +409,12 @@ async function inviteUser(email,role){
     }
   }catch(e){ toast("⚠️ "+(e.code||"Invite failed")); }
 }
+async function editName(){
+  const cur=S.profile.name||"";
+  const nn=prompt("Your name:", cur);
+  if(nn && nn.trim() && nn.trim()!==cur){ S.profile.name=nn.trim(); try{ await fb.updateDoc(fb.doc(fb.db,"users",S.user.uid),{name:nn.trim()}); toast("Name updated"); }catch(e){ toast("⚠️ couldn't save"); } render(); }
+}
+async function cancelInvite(email){ if(!confirm("Cancel the invite for "+email+"?"))return; try{ await fb.deleteDoc(fb.doc(fb.db,"invites",email)); toast("Invite cancelled"); }catch(e){ toast("⚠️ "+(e.code||"failed")); } }
 async function changeRole(uid,role){ try{ await fb.updateDoc(fb.doc(fb.db,"users",uid),{role}); toast("Role updated"); }catch(e){ toast("⚠️ "+(e.code||"failed")); } }
 async function setSubs(arr){ S.profile.subscribedClasses=arr; try{ await fb.updateDoc(fb.doc(fb.db,"users",S.user.uid),{subscribedClasses:arr}); }catch(e){} }
 
@@ -424,6 +447,7 @@ function renderAuth(notice){
       <button class="btn-primary" id="aSubmit">${authMode==="login"?"Log in":"Create account"}</button>
       <div class="auth-or"><span>or</span></div>
       <button class="btn-google" id="aGoogle"><svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> Continue with Google</button>
+      <button class="btn-google" id="aMicrosoft"><svg viewBox="0 0 23 23" xmlns="http://www.w3.org/2000/svg"><path fill="#f35325" d="M1 1h10v10H1z"/><path fill="#81bc06" d="M12 1h10v10H12z"/><path fill="#05a6f0" d="M1 12h10v10H1z"/><path fill="#ffba08" d="M12 12h10v10H12z"/></svg> Continue with Microsoft</button>
       <div class="auth-msg ${notice?"err":""}" id="aMsg">${notice?esc(notice):""}</div>
       <div class="auth-hint">${authMode==="signup"
         ?"You can only sign up if your school admin has invited your email address."
@@ -439,10 +463,11 @@ function renderAuth(notice){
     if(!email||!pass){ msg.textContent="Enter your email and password."; msg.className="auth-msg err"; return; }
     ev.target.disabled=true; msg.textContent="…"; msg.className="auth-msg";
     if(authMode==="login") await doLogin(email,pass,msg);
-    else await doSignup(email,pass,msg);
+    else { pendingName=(document.getElementById("aName")?.value||"").trim(); await doSignup(email,pass,msg); }
     ev.target.disabled=false;
   };
   document.getElementById("aGoogle").onclick=async(ev)=>{ ev.target.disabled=true; msg.textContent="…"; msg.className="auth-msg"; await doGoogle(msg); ev.target.disabled=false; };
+  document.getElementById("aMicrosoft").onclick=async(ev)=>{ ev.target.disabled=true; msg.textContent="…"; msg.className="auth-msg"; await doMicrosoft(msg); ev.target.disabled=false; };
 }
 
 // ====================== RENDER: APP ======================
@@ -489,7 +514,7 @@ function renderCalendar(){
   main.innerHTML=`
     <div class="hero">
       <div class="hero-date">${today.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"})}</div>
-      <div class="hero-title">${greeting()}, ${esc((S.profile.name||"").split(" ")[0])}</div>
+      <div class="hero-title">${greeting()}, <span class="edit-name" id="editName">${esc((S.profile.name||"there").split(" ")[0])}</span></div>
       <div class="hero-sub">${roleSub()}</div>
     </div>
     ${up?`<div class="reminder-banner"><div class="reminder-icon">⚡</div><div class="reminder-text"><strong>${esc(up.title)}</strong><span>${up.cls==="all"?"All classes":esc(up.cls)} · ${niceDate(up.date)}${up.time?" at "+fmt12(up.time):""}</span></div></div>`:""}
@@ -507,6 +532,7 @@ function renderCalendar(){
   const chips=document.getElementById("chips");
   chips.innerHTML=["all",...CONFIG.classes].map(c=>`<button class="chip ${S.activeClass===c?"active":""}" data-c="${c}">${c==="all"?"📋 All":esc(c)}</button>`).join("");
   chips.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{S.activeClass=b.dataset.c;render();});
+  const en=document.getElementById("editName"); if(en) en.onclick=editName;
   // calendar grid
   buildGrid(document.getElementById("grid"));
   document.getElementById("prevM").onclick=()=>{S.viewDate.setMonth(S.viewDate.getMonth()-1);render();};
@@ -581,9 +607,17 @@ function renderAdmin(){
         <button class="btn-primary" id="invBtn">Send invite</button>
         <p style="font-size:12px;color:var(--text3);margin-top:10px">${emailjsReady?"They'll get an email with a sign-up link.":"Email sending isn't set up yet — the invite link will be copied so you can send it yourself."}</p>
       </div>
+      ${S.invites.length?`<div class="card"><h4>⏳ Pending invites (${S.invites.length})</h4><div id="inviteList"></div></div>`:""}
       <div class="card"><h4>👥 Members</h4><div id="userList"></div></div>
     </div>`;
   document.getElementById("invBtn").onclick=()=>{ const e=document.getElementById("invEmail").value; const r=document.getElementById("invRole").value; inviteUser(e,r); document.getElementById("invEmail").value=""; };
+  const il=document.getElementById("inviteList");
+  if(il){
+    il.innerHTML=S.invites.map(i=>`<div class="user-row"><div class="avatar">✉️</div>
+      <div class="user-info"><div class="nm">${esc(i.email)}</div><div class="em">Invited as ${esc(i.role)} · not joined yet</div></div>
+      <button class="icon-btn del" data-inv="${esc(i.email)}" title="Cancel invite">🗑️</button></div>`).join("");
+    il.querySelectorAll("[data-inv]").forEach(b=>b.onclick=()=>cancelInvite(b.dataset.inv));
+  }
   const ul=document.getElementById("userList");
   if(!S.users.length){ ul.innerHTML=`<p style="color:var(--text3);font-size:13px">Loading…</p>`; }
   else ul.innerHTML=S.users.map(u=>`<div class="user-row"><div class="avatar">${initials(u.name)}</div>
