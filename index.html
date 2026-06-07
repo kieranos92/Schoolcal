@@ -97,13 +97,14 @@
   .nav-btn:hover{background:var(--border)}
   .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
   .cal-day-name{text-align:center;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;padding:4px 0}
-  .cal-cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-sm);cursor:pointer;position:relative;transition:background .15s;font-size:13px;font-weight:500}
+  .cal-cell{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border-radius:var(--radius-sm);cursor:pointer;position:relative;transition:background .15s;font-size:13px;font-weight:500}
+  .cell-dots{display:flex;gap:2px;height:5px;align-items:center}
+  .cell-dots i{width:5px;height:5px;border-radius:50%;display:block}
   .cal-cell:hover{background:var(--surface2)}
   .cal-cell.other-month{color:var(--text3)}
   .cal-cell.today{background:var(--surface2);font-weight:700;color:var(--accent)}
   .cal-cell.selected{background:var(--accent)!important;color:#fff!important;font-weight:700}
-  .cal-cell.has-event::after{content:'';position:absolute;bottom:4px;width:4px;height:4px;border-radius:50%;background:var(--accent2)}
-  .cal-cell.selected.has-event::after{background:#fff}
+  .cal-cell.selected .cell-dots i{box-shadow:0 0 0 1px rgba(255,255,255,.5)}
 
   /* EVENTS */
   .events-section{padding:20px;flex:1}
@@ -496,7 +497,8 @@ function render(){
   else renderAdmin();
 }
 
-function filteredEvents(){ return S.activeClass==="all"?S.events:S.events.filter(e=>e.cls==="all"||e.cls===S.activeClass); }
+function selectedClasses(){ return S.profile?.subscribedClasses||[]; }
+function filteredEvents(){ const sel=selectedClasses(); if(!sel.length) return S.events; return S.events.filter(e=>e.cls==="all"||sel.includes(e.cls)); }
 function upcomingForMe(){
   const t=new Date();t.setHours(0,0,0,0); const subs=S.profile?.subscribedClasses||[];
   return S.events.filter(e=>{const d=new Date(e.date+"T00:00:00");const diff=Math.ceil((d-t)/864e5);return diff>=0&&diff<=3&&(e.cls==="all"||subs.includes(e.cls));})[0];
@@ -518,7 +520,7 @@ function renderCalendar(){
       <div class="hero-sub">${roleSub()}</div>
     </div>
     ${up?`<div class="reminder-banner"><div class="reminder-icon">⚡</div><div class="reminder-text"><strong>${esc(up.title)}</strong><span>${up.cls==="all"?"All classes":esc(up.cls)} · ${niceDate(up.date)}${up.time?" at "+fmt12(up.time):""}</span></div></div>`:""}
-    <div class="section-label">Filter by class</div>
+    <div class="section-label">${S.role==="parent"?"My child\'s classes":"Filter by class"}</div>
     <div class="class-scroll" id="chips"></div>
     <div class="cal-section">
       <div class="month-nav"><button class="nav-btn" id="prevM">‹</button><h3>${monthName}</h3><button class="nav-btn" id="nextM">›</button></div>
@@ -530,8 +532,14 @@ function renderCalendar(){
     </div>`;
   // chips
   const chips=document.getElementById("chips");
-  chips.innerHTML=["all",...CONFIG.classes].map(c=>`<button class="chip ${S.activeClass===c?"active":""}" data-c="${c}">${c==="all"?"📋 All":esc(c)}</button>`).join("");
-  chips.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{S.activeClass=b.dataset.c;render();});
+  const sel=selectedClasses();
+  chips.innerHTML=`<button class="chip ${sel.length===0?"active":""}" data-c="__all">📋 All</button>`+CONFIG.classes.map(c=>{const on=sel.includes(c);return `<button class="chip ${on?"active":""}" data-c="${esc(c)}" style="${on?`background:${CLASS_COLORS[c]};border-color:${CLASS_COLORS[c]};color:#fff`:""}">${esc(c)}</button>`;}).join("");
+  chips.querySelectorAll(".chip").forEach(b=>b.onclick=async()=>{
+    const c=b.dataset.c;
+    if(c==="__all"){ await setSubs([]); }
+    else { const cur=new Set(selectedClasses()); cur.has(c)?cur.delete(c):cur.add(c); await setSubs([...cur]); }
+    render();
+  });
   const en=document.getElementById("editName"); if(en) en.onclick=editName;
   // calendar grid
   buildGrid(document.getElementById("grid"));
@@ -540,7 +548,7 @@ function renderCalendar(){
   if(canEdit) document.getElementById("addBtn").onclick=()=>openEventModal();
   // events
   const list=document.getElementById("evList");
-  if(!dayEvents.length){ list.innerHTML=`<div class="empty-state"><div class="emoji">📭</div><p>No events this day${S.activeClass!=="all"?" for "+esc(S.activeClass):""}.</p></div>`; }
+  if(!dayEvents.length){ list.innerHTML=`<div class="empty-state"><div class="emoji">📭</div><p>No events this day${selectedClasses().length?" for the selected classes":""}.</p></div>`; }
   else list.innerHTML=dayEvents.map(eventCardHTML).join("");
   list.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>openEventModal(b.dataset.edit));
   list.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>removeEvent(b.dataset.del));
@@ -549,13 +557,14 @@ function buildGrid(grid){
   const y=S.viewDate.getFullYear(), m=S.viewDate.getMonth();
   const first=new Date(y,m,1), last=new Date(y,m+1,0), start=first.getDay();
   const selS=fmtDate(S.selectedDate), todayS=todayStr();
-  const eventDates=new Set(filteredEvents().map(e=>e.date));
+  const byDate={}; filteredEvents().forEach(e=>{ (byDate[e.date]=byDate[e.date]||new Set()).add(e.cls); });
   let html=["Su","Mo","Tu","We","Th","Fr","Sa"].map(d=>`<div class="cal-day-name">${d}</div>`).join("");
-  for(let i=0;i<start;i++){const d=new Date(y,m,-start+1+i);html+=`<div class="cal-cell other-month" data-d="${fmtDate(d)}">${d.getDate()}</div>`;}
+  const dotsFor=ds=>{ const set=byDate[ds]; if(!set) return ""; return `<span class="cell-dots">`+[...set].slice(0,3).map(c=>`<i style="background:${CLASS_COLORS[c]||'#5b63e8'}"></i>`).join("")+`</span>`; };
+  for(let i=0;i<start;i++){const d=new Date(y,m,-start+1+i);html+=`<div class="cal-cell other-month" data-d="${fmtDate(d)}"><span>${d.getDate()}</span></div>`;}
   for(let d=1;d<=last.getDate();d++){
     const ds=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-    const cls=["cal-cell",ds===todayS?"today":"",ds===selS?"selected":"",eventDates.has(ds)?"has-event":""].filter(Boolean).join(" ");
-    html+=`<div class="${cls}" data-d="${ds}">${d}</div>`;
+    const cls=["cal-cell",ds===todayS?"today":"",ds===selS?"selected":""].filter(Boolean).join(" ");
+    html+=`<div class="${cls}" data-d="${ds}"><span>${d}</span>${dotsFor(ds)}</div>`;
   }
   grid.innerHTML=html;
   grid.querySelectorAll("[data-d]").forEach(c=>c.onclick=()=>{S.selectedDate=new Date(c.dataset.d+"T00:00:00");render();});
@@ -584,7 +593,7 @@ function renderNotif(){
       </div>
       <div class="card"><h4>📚 My child's classes</h4>
         <p style="font-size:13px;color:var(--text2);margin-bottom:10px">Choose which classes to follow.</p>
-        <div class="subscribe-grid" id="subs">${CONFIG.classes.map(c=>`<button class="sub-chip ${subs.includes(c)?"subscribed":""}" data-c="${c}"><span>${subs.includes(c)?"✓":"○"}</span> ${esc(c)}</button>`).join("")}</div>
+        <div class="subscribe-grid" id="subs">${CONFIG.classes.map(c=>{const on=subs.includes(c);return `<button class="sub-chip ${on?"subscribed":""}" data-c="${esc(c)}" style="${on?`border-color:${CLASS_COLORS[c]};background:${CLASS_COLORS[c]}1f;color:${CLASS_COLORS[c]}`:""}"><span>${on?"✓":"○"}</span> ${esc(c)}</button>`;}).join("")}</div>
       </div>
       ${week.length?`<div class="card"><h4>📅 This week</h4>${week.map(e=>`<div class="user-row"><div style="width:8px;height:8px;border-radius:50%;background:${CLASS_COLORS[e.cls]||"#4f9eff"};flex-shrink:0"></div><div class="user-info"><div class="nm">${esc(e.title)}</div><div class="em">${niceDate(e.date)} · ${e.cls==="all"?"All classes":esc(e.cls)}</div></div></div>`).join("")}</div>`:""}
     </div>`;
