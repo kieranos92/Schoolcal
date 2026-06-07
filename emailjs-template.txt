@@ -1,0 +1,18 @@
+Hi,
+
+You've been invited to join SchoolCal as a {{role}}.
+
+SchoolCal is your school's shared calendar — events, reminders and alerts for
+your child's classes, all in one place.
+
+To get started:
+1. Open this link on your phone:  {{app_link}}
+2. Tap "Sign up"
+3. Use THIS email address ({{invitee_email}}) and choose a password
+
+That's it — you'll be set up as a {{role}} automatically.
+
+See you there,
+{{from_name}}
+
+— Sent via SchoolCal
