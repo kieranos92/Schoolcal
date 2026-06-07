@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover"/>
-<meta name="theme-color" content="#0f1219"/>
+<meta name="theme-color" content="#5b63e8"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="SchoolCal"/>
@@ -14,10 +14,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet"/>
 <style>
   :root{
-    --bg:#0f1219; --surface:#1a2030; --surface2:#232b3e; --border:#2e3a52;
-    --accent:#4f9eff; --accent2:#f7c948; --accent3:#5ef6b0; --danger:#ff5f6d;
-    --text:#e8edf5; --text2:#8896b0; --text3:#4a5878;
-    --radius:16px; --radius-sm:10px; --shadow:0 8px 32px rgba(0,0,0,.45);
+    --bg:#f5f2ec; --surface:#ffffff; --surface2:#f0ebe2; --border:#e7e0d4;
+    --accent:#5b63e8; --accent2:#f4a93c; --accent3:#2bb98a; --danger:#e8556b;
+    --text:#2c2e38; --text2:#6f7585; --text3:#a3a8b5;
+    --radius:18px; --radius-sm:11px; --shadow:0 6px 24px rgba(74,72,120,.12);
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden}
@@ -44,6 +44,12 @@
   .auth-msg{font-size:13px;margin-top:14px;text-align:center;min-height:18px}
   .auth-msg.err{color:var(--danger)} .auth-msg.ok{color:var(--accent3)}
   .auth-hint{font-size:12px;color:var(--text3);text-align:center;margin-top:18px;line-height:1.5}
+  .auth-or{display:flex;align-items:center;text-align:center;color:var(--text3);font-size:12px;margin:16px 0 14px}
+  .auth-or::before,.auth-or::after{content:"";flex:1;height:1px;background:var(--border)}
+  .auth-or span{padding:0 12px;text-transform:uppercase;letter-spacing:1px}
+  .btn-google{width:100%;background:#fff;border:1.5px solid var(--border);color:#2c2e38;border-radius:var(--radius-sm);padding:13px;font-family:'DM Sans';font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background .15s}
+  .btn-google:hover{background:var(--surface2)}
+  .btn-google svg{width:18px;height:18px;flex-shrink:0}
 
   /* SETUP BANNER */
   .setup-screen{padding:40px 24px;min-height:100vh;display:flex;flex-direction:column;justify-content:center}
@@ -57,9 +63,9 @@
   .logo span{color:var(--accent)}
   .header-right{display:flex;gap:10px;align-items:center}
   .role-pill{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px}
-  .role-pill.admin{background:#ff5f6d22;color:#ff8a93}
-  .role-pill.teacher{background:#f7c94822;color:#f7c948}
-  .role-pill.parent{background:#5ef6b022;color:#5ef6b0}
+  .role-pill.admin{background:#e8556b1f;color:#c43350}
+  .role-pill.teacher{background:#f4a93c24;color:#b5760f}
+  .role-pill.parent{background:#2bb98a22;color:#138a64}
   .icon-btn-sm{background:var(--surface2);border:none;color:var(--text2);width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center}
   .icon-btn-sm:hover{background:var(--border);color:var(--text)}
 
@@ -75,7 +81,7 @@
   .chip{flex-shrink:0;padding:8px 16px;border-radius:50px;border:1.5px solid var(--border);background:transparent;color:var(--text2);font-size:13px;font-family:'DM Sans';cursor:pointer;transition:.2s;white-space:nowrap}
   .chip.active{color:#fff;border-color:var(--accent);background:var(--accent);font-weight:600}
 
-  .reminder-banner{margin:0 20px 16px;background:linear-gradient(135deg,#4f9eff22,#7c5cfc22);border:1px solid #4f9eff44;border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;gap:12px}
+  .reminder-banner{margin:0 20px 16px;background:linear-gradient(135deg,#5b63e814,#8b7cf014);border:1px solid #5b63e833;border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;gap:12px}
   .reminder-icon{font-size:26px}
   .reminder-text{flex:1}
   .reminder-text strong{font-size:14px;display:block;margin-bottom:2px}
@@ -242,15 +248,15 @@ function renderError(title, detail){
   root.innerHTML = `<div style="padding:40px 24px;min-height:100vh;display:flex;flex-direction:column;justify-content:center;font-family:'DM Sans',sans-serif">
     <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:34px;margin-bottom:8px">School<span style="color:#4f9eff">Cal</span></div>
     <h2 style="font-size:22px;margin-bottom:12px">${title}</h2>
-    <p style="color:#8896b0;font-size:14px;line-height:1.6;margin-bottom:18px">${detail||""}</p>
-    <button onclick="location.reload()" style="background:#4f9eff;color:#fff;border:none;border-radius:10px;padding:14px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer">Try again</button>
+    <p style="color:#6f7585;font-size:14px;line-height:1.6;margin-bottom:18px">${detail||""}</p>
+    <button onclick="location.reload()" style="background:#5b63e8;color:#fff;border:none;border-radius:10px;padding:14px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer">Try again</button>
   </div>`;
 }
 // Watchdog: if nothing rendered after 12s, show a diagnostic instead of an endless spinner.
 setTimeout(()=>{ if(!window.__rendered){ renderError("Hmm, it's stuck loading", "The app couldn't reach Firebase. Check your internet, then tap Try again. If it keeps happening, the app file probably didn't upload completely — re-upload index.html."); } }, 12000);
 
 // ====================== HELPERS ======================
-const fmtDate=d=>d.toISOString().split("T")[0];
+const fmtDate=d=>{const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");return `${y}-${m}-${day}`;};
 const addDays=(d,n)=>{const r=new Date(d);r.setDate(r.getDate()+n);return r};
 const todayStr=()=>fmtDate(new Date());
 function fmt12(t){ if(!t)return""; const[h,m]=t.split(":").map(Number); const ap=h>=12?"pm":"am"; return `${h%12||12}:${String(m).padStart(2,"0")}${ap}`; }
@@ -333,6 +339,15 @@ async function enableNotifs(){
 function disableNotifs(){ localStorage.setItem("notifOn","0"); toast("Notifications off"); render(); }
 
 // ====================== ACTIONS ======================
+async function doGoogle(msgEl){
+  try{
+    const provider=new fb.GoogleAuthProvider();
+    await fb.signInWithPopup(fb.auth, provider);
+  }catch(e){
+    if(e && e.code && e.code.includes("popup")){ try{ await fb.signInWithRedirect(fb.auth, new fb.GoogleAuthProvider()); return; }catch(_){} }
+    msgEl.textContent=friendly(e); msgEl.className="auth-msg err";
+  }
+}
 async function doLogin(email,pass,msgEl){
   try{ await fb.signInWithEmailAndPassword(fb.auth,email.trim(),pass); }
   catch(e){ msgEl.textContent=friendly(e); msgEl.className="auth-msg err"; }
@@ -407,6 +422,8 @@ function renderAuth(notice){
       <div class="field"><label>Email</label><input id="aEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com"/></div>
       <div class="field"><label>Password</label><input id="aPass" type="password" autocomplete="current-password" placeholder="••••••••"/></div>
       <button class="btn-primary" id="aSubmit">${authMode==="login"?"Log in":"Create account"}</button>
+      <div class="auth-or"><span>or</span></div>
+      <button class="btn-google" id="aGoogle"><svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> Continue with Google</button>
       <div class="auth-msg ${notice?"err":""}" id="aMsg">${notice?esc(notice):""}</div>
       <div class="auth-hint">${authMode==="signup"
         ?"You can only sign up if your school admin has invited your email address."
@@ -425,6 +442,7 @@ function renderAuth(notice){
     else await doSignup(email,pass,msg);
     ev.target.disabled=false;
   };
+  document.getElementById("aGoogle").onclick=async(ev)=>{ ev.target.disabled=true; msg.textContent="…"; msg.className="auth-msg"; await doGoogle(msg); ev.target.disabled=false; };
 }
 
 // ====================== RENDER: APP ======================
