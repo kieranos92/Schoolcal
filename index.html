@@ -68,6 +68,9 @@
   .role-pill.teacher{background:#f4a93c24;color:#b5760f}
   .role-pill.parent{background:#2bb98a22;color:#138a64}
   .icon-btn-sm{background:var(--surface2);border:none;color:var(--text2);width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center}
+  .signout-btn{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);border-radius:50px;padding:7px 13px;font-family:'DM Sans';font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
+  .signout-btn:hover{color:var(--danger);border-color:var(--danger)}
+  .signout-btn svg{width:14px;height:14px}
   .icon-btn-sm:hover{background:var(--border);color:var(--text)}
 
   /* HERO */
@@ -80,6 +83,14 @@
   .section-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;padding:0 20px;margin-bottom:10px}
   .class-scroll{display:flex;gap:8px;padding:0 20px;overflow-x:auto;scrollbar-width:none;margin-bottom:20px}
   .filter-zone{padding:0 20px;margin-bottom:18px}
+  .filter-trigger{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1.5px solid var(--border);color:var(--text);border-radius:50px;padding:9px 16px;font-family:'DM Sans';font-size:14px;font-weight:600;cursor:pointer;margin-bottom:12px;transition:.15s}
+  .filter-trigger:hover{border-color:var(--accent);color:var(--accent)}
+  .filter-trigger svg{width:16px;height:16px}
+  .filt-row{width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);padding:14px 4px;font-family:'DM Sans';font-size:15px;cursor:pointer;display:flex;align-items:center;gap:12px;text-align:left}
+  .filt-row:last-child{border-bottom:none}
+  .cbox{margin-left:auto;width:22px;height:22px;border:2px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700}
+  .filt-row.on .cbox{background:var(--accent);border-color:var(--accent)}
+  .filt-scroll{max-height:48vh;overflow-y:auto;margin-bottom:8px}
   .filter-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
   .filter-empty{color:var(--text3);font-size:13px}
   .filter-pill{display:inline-flex;align-items:center;gap:6px;color:#fff;font-size:13px;font-weight:600;padding:6px 6px 6px 13px;border-radius:50px}
@@ -494,7 +505,7 @@ function render(){
       <div class="logo">School<span>Cal</span></div>
       <div class="header-right">
         <span class="role-pill ${S.role}">${S.role}</span>
-        <button class="icon-btn-sm" id="logoutBtn" title="Log out">⏻</button>
+        <button class="signout-btn" id="logoutBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Sign out</button>
       </div>
     </div>
     <div id="main"></div>
@@ -536,9 +547,8 @@ function renderCalendar(){
     ${up?`<div class="reminder-banner"><div class="reminder-icon">⚡</div><div class="reminder-text"><strong>${esc(up.title)}</strong><span>${up.cls==="all"?"All classes":esc(up.cls)} · ${niceDate(up.date)}${up.time?" at "+fmt12(up.time):""}</span></div></div>`:""}
     <div class="section-label">${S.role==="parent"?"Classes you're viewing":"Filter by class"}</div>
     <div class="filter-zone">
+      <button class="filter-trigger" id="filterBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/></svg> Filter classes${selectedClasses().length?` (${selectedClasses().length})`:""}</button>
       <div class="filter-pills" id="filterPills"></div>
-      <button class="picker-btn" id="pickerBtn">＋ Select classes to view <span style="margin-left:auto;opacity:.6">${S.classMenuOpen?"▴":"▾"}</span></button>
-      <div class="class-dropdown ${S.classMenuOpen?"":"hidden"}" id="classMenu"></div>
     </div>
     <div class="cal-section">
       <div class="month-nav"><button class="nav-btn" id="prevM">‹</button><h3>${monthName}</h3><button class="nav-btn" id="nextM">›</button></div>
@@ -548,18 +558,13 @@ function renderCalendar(){
       <div class="events-header"><h3>${selS===todayS?"Today's events":niceDate(selS)}</h3>${canEdit?`<button class="add-btn" id="addBtn">＋ Add</button>`:""}</div>
       <div id="evList"></div>
     </div>`;
-  // class filter: removable pills + dropdown picker
+  // class filter: Booking-style modal + removable pills (all shown when none filtered)
   const sel=selectedClasses();
+  const shown = sel.length ? sel : CONFIG.classes;
   const pills=document.getElementById("filterPills");
-  if(!sel.length){ pills.innerHTML=`<span class="filter-empty">Showing all classes — pick one or more below</span>`; }
-  else pills.innerHTML=sel.map(c=>`<span class="filter-pill" style="background:${CLASS_COLORS[c]||'#5b63e8'}">${esc(c)}<button data-rm="${esc(c)}" aria-label="Remove">×</button></span>`).join("");
-  pills.querySelectorAll("[data-rm]").forEach(b=>b.onclick=async()=>{ const cur=new Set(selectedClasses()); cur.delete(b.dataset.rm); await setSubs([...cur]); render(); });
-  document.getElementById("pickerBtn").onclick=()=>{ S.classMenuOpen=!S.classMenuOpen; render(); };
-  const menu=document.getElementById("classMenu");
-  if(S.classMenuOpen){
-    menu.innerHTML=CONFIG.classes.map(c=>{const on=sel.includes(c);return `<button class="dd-item ${on?"on":""}" data-c="${esc(c)}"><span class="dd-dot" style="background:${CLASS_COLORS[c]}"></span><span class="dd-name">${esc(c)}</span><span class="dd-check">${on?"✓":""}</span></button>`;}).join("");
-    menu.querySelectorAll("[data-c]").forEach(b=>b.onclick=async()=>{ const c=b.dataset.c; const cur=new Set(selectedClasses()); cur.has(c)?cur.delete(c):cur.add(c); await setSubs([...cur]); render(); });
-  }
+  pills.innerHTML=shown.map(c=>`<span class="filter-pill" style="background:${CLASS_COLORS[c]||'#5b63e8'}">${esc(c)}<button data-rm="${esc(c)}" aria-label="Remove">×</button></span>`).join("");
+  pills.querySelectorAll("[data-rm]").forEach(b=>b.onclick=async()=>{ const base=sel.length?sel:CONFIG.classes; await setSubs(base.filter(x=>x!==b.dataset.rm)); render(); });
+  document.getElementById("filterBtn").onclick=openFilterModal;
   const en=document.getElementById("editName"); if(en) en.onclick=editName;
   // calendar grid
   buildGrid(document.getElementById("grid"));
@@ -658,6 +663,23 @@ function renderAdmin(){
 }
 
 // ====================== EVENT MODAL ======================
+function openFilterModal(){
+  let draft=new Set(selectedClasses());
+  const host=document.getElementById("toastHost");
+  const rows=()=>CONFIG.classes.map(c=>{const on=draft.has(c);return `<button class="filt-row ${on?"on":""}" data-c="${esc(c)}"><span class="dd-dot" style="background:${CLASS_COLORS[c]}"></span><span class="dd-name">${esc(c)}</span><span class="cbox">${on?"✓":""}</span></button>`;}).join("");
+  host.innerHTML=`<div class="modal-overlay" id="fov"><div class="modal">
+    <div class="modal-handle"></div>
+    <h3>Filter classes</h3>
+    <div class="filt-scroll" id="filtRows">${rows()}</div>
+    <div class="modal-actions"><button class="btn-cancel" id="filtClear">Clear all</button><button class="btn-primary" id="filtApply">Apply</button></div>
+  </div></div>`;
+  const close=()=>host.innerHTML="";
+  const wire=()=>document.querySelectorAll("#filtRows .filt-row").forEach(b=>b.onclick=()=>{ const c=b.dataset.c; draft.has(c)?draft.delete(c):draft.add(c); document.getElementById("filtRows").innerHTML=rows(); wire(); });
+  wire();
+  document.getElementById("fov").onclick=e=>{ if(e.target.id==="fov") close(); };
+  document.getElementById("filtClear").onclick=()=>{ draft=new Set(); document.getElementById("filtRows").innerHTML=rows(); wire(); };
+  document.getElementById("filtApply").onclick=async()=>{ close(); await setSubs([...draft]); render(); };
+}
 function openEventModal(id){
   const ev=id?S.events.find(e=>e.id===id):null;
   const host=document.getElementById("toastHost");
