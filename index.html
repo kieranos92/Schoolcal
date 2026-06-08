@@ -79,6 +79,20 @@
 
   .section-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;padding:0 20px;margin-bottom:10px}
   .class-scroll{display:flex;gap:8px;padding:0 20px;overflow-x:auto;scrollbar-width:none;margin-bottom:20px}
+  .filter-zone{padding:0 20px;margin-bottom:18px}
+  .filter-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+  .filter-empty{color:var(--text3);font-size:13px}
+  .filter-pill{display:inline-flex;align-items:center;gap:6px;color:#fff;font-size:13px;font-weight:600;padding:6px 6px 6px 13px;border-radius:50px}
+  .filter-pill button{background:rgba(255,255,255,.28);border:none;color:#fff;width:19px;height:19px;border-radius:50%;font-size:14px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+  .picker-btn{width:100%;background:var(--surface);border:1.5px solid var(--border);color:var(--text);border-radius:var(--radius-sm);padding:13px 14px;font-family:'DM Sans';font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px}
+  .picker-btn:hover{border-color:var(--accent)}
+  .class-dropdown{margin-top:8px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;box-shadow:var(--shadow)}
+  .dd-item{width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);padding:13px 14px;font-family:'DM Sans';font-size:14px;cursor:pointer;display:flex;align-items:center;gap:11px;text-align:left}
+  .dd-item:last-child{border-bottom:none}
+  .dd-item.on{background:var(--surface2)}
+  .dd-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+  .dd-name{flex:1}
+  .dd-check{color:var(--accent3);font-weight:700;font-size:15px}
   .class-scroll::-webkit-scrollbar{display:none}
   .chip{flex-shrink:0;padding:8px 16px;border-radius:50px;border:1.5px solid var(--border);background:transparent;color:var(--text2);font-size:13px;font-family:'DM Sans';cursor:pointer;transition:.2s;white-space:nowrap}
   .chip.active{color:#fff;border-color:var(--accent);background:var(--accent);font-weight:600}
@@ -241,7 +255,7 @@ if (CONFIG.emailjs.publicKey) {
 const S = {
   user:null, profile:null, role:null,
   tab:"calendar", selectedDate:new Date(), viewDate:new Date(),
-  activeClass:"all", events:[], users:[], invites:[], knownEventIds:new Set(),
+  activeClass:"all", classMenuOpen:false, events:[], users:[], invites:[], knownEventIds:new Set(),
 };
 let pendingName=null;
 const root = document.getElementById("root");
@@ -520,8 +534,12 @@ function renderCalendar(){
       <div class="hero-sub">${roleSub()}</div>
     </div>
     ${up?`<div class="reminder-banner"><div class="reminder-icon">⚡</div><div class="reminder-text"><strong>${esc(up.title)}</strong><span>${up.cls==="all"?"All classes":esc(up.cls)} · ${niceDate(up.date)}${up.time?" at "+fmt12(up.time):""}</span></div></div>`:""}
-    <div class="section-label">${S.role==="parent"?"My child\'s classes":"Filter by class"}</div>
-    <div class="class-scroll" id="chips"></div>
+    <div class="section-label">${S.role==="parent"?"Classes you're viewing":"Filter by class"}</div>
+    <div class="filter-zone">
+      <div class="filter-pills" id="filterPills"></div>
+      <button class="picker-btn" id="pickerBtn">＋ Select classes to view <span style="margin-left:auto;opacity:.6">${S.classMenuOpen?"▴":"▾"}</span></button>
+      <div class="class-dropdown ${S.classMenuOpen?"":"hidden"}" id="classMenu"></div>
+    </div>
     <div class="cal-section">
       <div class="month-nav"><button class="nav-btn" id="prevM">‹</button><h3>${monthName}</h3><button class="nav-btn" id="nextM">›</button></div>
       <div class="cal-grid" id="grid"></div>
@@ -530,16 +548,18 @@ function renderCalendar(){
       <div class="events-header"><h3>${selS===todayS?"Today's events":niceDate(selS)}</h3>${canEdit?`<button class="add-btn" id="addBtn">＋ Add</button>`:""}</div>
       <div id="evList"></div>
     </div>`;
-  // chips
-  const chips=document.getElementById("chips");
+  // class filter: removable pills + dropdown picker
   const sel=selectedClasses();
-  chips.innerHTML=`<button class="chip ${sel.length===0?"active":""}" data-c="__all">📋 All</button>`+CONFIG.classes.map(c=>{const on=sel.includes(c);return `<button class="chip ${on?"active":""}" data-c="${esc(c)}" style="${on?`background:${CLASS_COLORS[c]};border-color:${CLASS_COLORS[c]};color:#fff`:""}">${esc(c)}</button>`;}).join("");
-  chips.querySelectorAll(".chip").forEach(b=>b.onclick=async()=>{
-    const c=b.dataset.c;
-    if(c==="__all"){ await setSubs([]); }
-    else { const cur=new Set(selectedClasses()); cur.has(c)?cur.delete(c):cur.add(c); await setSubs([...cur]); }
-    render();
-  });
+  const pills=document.getElementById("filterPills");
+  if(!sel.length){ pills.innerHTML=`<span class="filter-empty">Showing all classes — pick one or more below</span>`; }
+  else pills.innerHTML=sel.map(c=>`<span class="filter-pill" style="background:${CLASS_COLORS[c]||'#5b63e8'}">${esc(c)}<button data-rm="${esc(c)}" aria-label="Remove">×</button></span>`).join("");
+  pills.querySelectorAll("[data-rm]").forEach(b=>b.onclick=async()=>{ const cur=new Set(selectedClasses()); cur.delete(b.dataset.rm); await setSubs([...cur]); render(); });
+  document.getElementById("pickerBtn").onclick=()=>{ S.classMenuOpen=!S.classMenuOpen; render(); };
+  const menu=document.getElementById("classMenu");
+  if(S.classMenuOpen){
+    menu.innerHTML=CONFIG.classes.map(c=>{const on=sel.includes(c);return `<button class="dd-item ${on?"on":""}" data-c="${esc(c)}"><span class="dd-dot" style="background:${CLASS_COLORS[c]}"></span><span class="dd-name">${esc(c)}</span><span class="dd-check">${on?"✓":""}</span></button>`;}).join("");
+    menu.querySelectorAll("[data-c]").forEach(b=>b.onclick=async()=>{ const c=b.dataset.c; const cur=new Set(selectedClasses()); cur.has(c)?cur.delete(c):cur.add(c); await setSubs([...cur]); render(); });
+  }
   const en=document.getElementById("editName"); if(en) en.onclick=editName;
   // calendar grid
   buildGrid(document.getElementById("grid"));
