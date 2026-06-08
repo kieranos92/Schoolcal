@@ -318,7 +318,7 @@ else {
         renderAuth("No invite found for this email. Ask your school admin to invite you first.");
         return;
       }
-      await fb.setDoc(uref,{ email, name, role, subscribedClasses:[], createdAt:fb.serverTimestamp() });
+      await fb.setDoc(uref,{ email, name, role, viewClasses:[], subscribedClasses:[], createdAt:fb.serverTimestamp() });
       pendingName=null;
       // consume invite
       try{ await fb.deleteDoc(fb.doc(fb.db,"invites",email)); }catch(e){}
@@ -443,6 +443,7 @@ async function editName(){
 async function cancelInvite(email){ if(!confirm("Cancel the invite for "+email+"?"))return; try{ await fb.deleteDoc(fb.doc(fb.db,"invites",email)); toast("Invite cancelled"); }catch(e){ toast("⚠️ "+(e.code||"failed")); } }
 async function changeRole(uid,role){ try{ await fb.updateDoc(fb.doc(fb.db,"users",uid),{role}); toast("Role updated"); }catch(e){ toast("⚠️ "+(e.code||"failed")); } }
 async function setSubs(arr){ S.profile.subscribedClasses=arr; try{ await fb.updateDoc(fb.doc(fb.db,"users",S.user.uid),{subscribedClasses:arr}); }catch(e){} }
+async function setView(arr){ S.profile.viewClasses=arr; try{ await fb.updateDoc(fb.doc(fb.db,"users",S.user.uid),{viewClasses:arr}); }catch(e){} }
 
 // ====================== RENDER: SETUP ======================
 function renderSetup(){
@@ -522,7 +523,7 @@ function render(){
   else renderAdmin();
 }
 
-function selectedClasses(){ return S.profile?.subscribedClasses||[]; }
+function selectedClasses(){ return S.profile?.viewClasses||[]; }
 function filteredEvents(){ const sel=selectedClasses(); if(!sel.length) return S.events; return S.events.filter(e=>e.cls==="all"||sel.includes(e.cls)); }
 function upcomingForMe(){
   const t=new Date();t.setHours(0,0,0,0); const subs=S.profile?.subscribedClasses||[];
@@ -563,7 +564,7 @@ function renderCalendar(){
   const shown = sel.length ? sel : CONFIG.classes;
   const pills=document.getElementById("filterPills");
   pills.innerHTML=shown.map(c=>`<span class="filter-pill" style="background:${CLASS_COLORS[c]||'#5b63e8'}">${esc(c)}<button data-rm="${esc(c)}" aria-label="Remove">×</button></span>`).join("");
-  pills.querySelectorAll("[data-rm]").forEach(b=>b.onclick=async()=>{ const base=sel.length?sel:CONFIG.classes; await setSubs(base.filter(x=>x!==b.dataset.rm)); render(); });
+  pills.querySelectorAll("[data-rm]").forEach(b=>b.onclick=async()=>{ const base=sel.length?sel:CONFIG.classes; await setView(base.filter(x=>x!==b.dataset.rm)); render(); });
   document.getElementById("filterBtn").onclick=openFilterModal;
   const en=document.getElementById("editName"); if(en) en.onclick=editName;
   // calendar grid
@@ -616,8 +617,8 @@ function renderNotif(){
         <button class="toggle-btn ${on?"":"off"}" id="ntog">${on?"On ✓":"Enable"}</button></div>
         ${!on?`<p style="font-size:12px;color:var(--text3);margin-top:10px">Works on Android in any browser, and on iPhone once you add the app to your Home Screen (iOS 16.4+).</p>`:""}
       </div>
-      <div class="card"><h4>📚 My child's classes</h4>
-        <p style="font-size:13px;color:var(--text2);margin-bottom:10px">Choose which classes to follow.</p>
+      <div class="card"><h4>🔔 Alerts for these classes</h4>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:10px">You'll only get notifications for the classes you tick here. This is separate from the calendar filter — you can view many classes but be alerted about just one.</p>
         <div class="subscribe-grid" id="subs">${CONFIG.classes.map(c=>{const on=subs.includes(c);return `<button class="sub-chip ${on?"subscribed":""}" data-c="${esc(c)}" style="${on?`border-color:${CLASS_COLORS[c]};background:${CLASS_COLORS[c]}1f;color:${CLASS_COLORS[c]}`:""}"><span>${on?"✓":"○"}</span> ${esc(c)}</button>`;}).join("")}</div>
       </div>
       ${week.length?`<div class="card"><h4>📅 This week</h4>${week.map(e=>`<div class="user-row"><div style="width:8px;height:8px;border-radius:50%;background:${CLASS_COLORS[e.cls]||"#4f9eff"};flex-shrink:0"></div><div class="user-info"><div class="nm">${esc(e.title)}</div><div class="em">${niceDate(e.date)} · ${e.cls==="all"?"All classes":esc(e.cls)}</div></div></div>`).join("")}</div>`:""}
@@ -678,7 +679,7 @@ function openFilterModal(){
   wire();
   document.getElementById("fov").onclick=e=>{ if(e.target.id==="fov") close(); };
   document.getElementById("filtClear").onclick=()=>{ draft=new Set(); document.getElementById("filtRows").innerHTML=rows(); wire(); };
-  document.getElementById("filtApply").onclick=async()=>{ close(); await setSubs([...draft]); render(); };
+  document.getElementById("filtApply").onclick=async()=>{ close(); await setView([...draft]); render(); };
 }
 function openEventModal(id){
   const ev=id?S.events.find(e=>e.id===id):null;
